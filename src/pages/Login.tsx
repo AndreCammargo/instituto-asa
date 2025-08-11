@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -43,12 +44,14 @@ const Login = () => {
       <Card className="w-full max-w-md shadow-elevated">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="p-3 bg-gradient-primary rounded-full">
-              <Activity className="h-8 w-8 text-white" />
-            </div>
+            <img 
+              src={institutoAsaLogo} 
+              alt="Instituto Asa Logo" 
+              className="h-16 w-16 object-contain"
+            />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold text-medical-blue">Acolhido Care</CardTitle>
+            <CardTitle className="text-2xl font-bold text-medical-blue">Instituto Asa</CardTitle>
             <CardDescription className="text-muted-foreground">
               Sistema de Gestão de Acolhimento
             </CardDescription>
@@ -104,6 +107,26 @@ const Login = () => {
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
+          
+          <div className="space-y-3 pt-4 border-t border-border">
+            <div className="text-center space-y-2">
+              <Link 
+                to="/forgot-password" 
+                className="text-sm text-medical-blue hover:underline"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+            <div className="text-center">
+              <span className="text-sm text-muted-foreground">Não tem conta? </span>
+              <Link 
+                to="/register" 
+                className="text-sm text-medical-blue hover:underline"
+              >
+                Criar conta
+              </Link>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

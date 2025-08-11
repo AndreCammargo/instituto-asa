@@ -93,7 +93,11 @@ const Consultations = () => {
                 <Search className="h-5 w-5 text-medical-blue" />
                 Buscar Paciente
               </div>
-              <Button variant="outline" className="gap-2">
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => navigate("/new-consultation")}
+              >
                 <Plus className="h-4 w-4" />
                 Nova Consulta
               </Button>

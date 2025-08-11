@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { User, UserPlus, Stethoscope, LogOut, Activity } from "lucide-react";
+import { User, UserPlus, Stethoscope, LogOut } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
 
 import {
   Sidebar,
@@ -46,12 +47,14 @@ export function AppSidebar() {
         {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-primary rounded-lg">
-              <Activity className="h-6 w-6 text-white" />
-            </div>
+            <img 
+              src={institutoAsaLogo} 
+              alt="Instituto Asa Logo" 
+              className="h-8 w-8 object-contain"
+            />
             {!collapsed && (
               <div>
-                <h2 className="font-semibold text-medical-blue">Acolhido Care</h2>
+                <h2 className="font-semibold text-medical-blue">Instituto Asa</h2>
                 <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
               </div>
             )}
