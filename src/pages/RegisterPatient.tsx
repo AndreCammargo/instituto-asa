@@ -29,6 +29,8 @@ const RegisterPatient = () => {
     
     // Estado civil e profissão
     estadoCivil: "",
+    prole: "",
+    quantidadeFilhos: "",
     profissao: "",
     rendaPessoal: "",
     escolaridade: "",
@@ -104,6 +106,8 @@ const RegisterPatient = () => {
       pai: "",
       endereco: "",
       estadoCivil: "",
+      prole: "",
+      quantidadeFilhos: "",
       profissao: "",
       rendaPessoal: "",
       escolaridade: "",
@@ -299,6 +303,33 @@ const RegisterPatient = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="prole">Possui filhos?</Label>
+              <Select value={formData.prole} onValueChange={(value) => handleInputChange("prole", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sim">Sim</SelectItem>
+                  <SelectItem value="nao">Não</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {formData.prole === "sim" && (
+              <div className="space-y-2">
+                <Label htmlFor="quantidadeFilhos">Quantos filhos?</Label>
+                <Input
+                  id="quantidadeFilhos"
+                  type="number"
+                  min="1"
+                  value={formData.quantidadeFilhos}
+                  onChange={(e) => handleInputChange("quantidadeFilhos", e.target.value)}
+                  placeholder="Número de filhos"
+                />
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="escolaridade">Escolaridade</Label>
