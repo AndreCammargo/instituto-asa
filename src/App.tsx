@@ -8,6 +8,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Account from "./pages/Account";
+import Acolhidos from "./pages/Acolhidos";
 import RegisterPatient from "./pages/RegisterPatient";
 import Consultations from "./pages/Consultations";
 import NewConsultation from "./pages/NewConsultation";
@@ -28,7 +29,7 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/account" element={<Account />} />
-          <Route path="/register-patient" element={<RegisterPatient />} />
+          <Route path="/acolhidos" element={<Acolhidos />} />
           <Route path="/consultations" element={<Consultations />} />
           <Route path="/new-consultation" element={<NewConsultation />} />
           <Route path="/consultation-details/:patientId" element={<ConsultationDetails />} />

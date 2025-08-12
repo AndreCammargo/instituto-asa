@@ -25,7 +25,7 @@ const Login = () => {
       if (username && password) {
         toast({
           title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao sistema Acolhido Care.",
+          description: "Bem-vindo ao sistema Instituto Asa.",
         });
         navigate("/dashboard");
       } else {

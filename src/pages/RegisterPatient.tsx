@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { UserPlus, Save, RotateCcw } from "lucide-react";
+import { UserPlus, Save, RotateCcw, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -146,6 +146,9 @@ const RegisterPatient = () => {
   return (
     <Layout>
       <div className="space-y-6">
+        <Button variant="outline" className="gap-2" onClick={() => window.history.back()}>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
         <div className="bg-gradient-card rounded-lg p-6 shadow-card">
           <div className="flex items-center gap-3">
             <UserPlus className="h-8 w-8 text-medical-blue" />

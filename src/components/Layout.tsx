@@ -1,12 +1,13 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/AppSidebar";
-import { Menu } from "lucide-react";
+import { Menu, LogOut, User as UserIcon } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const navigate = useNavigate();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -20,13 +21,28 @@ export default function Layout({ children }: LayoutProps) {
             </SidebarTrigger>
             
             <div className="flex items-center gap-4">
-              <div className="text-right">
+              <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium">Dr. Admin</p>
                 <p className="text-xs text-muted-foreground">Administrador</p>
               </div>
-              <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-semibold">A</span>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center focus:outline-none">
+                    <span className="text-white text-sm font-semibold">A</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Conta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/account")} className="cursor-pointer">
+                    <UserIcon className="mr-2 h-4 w-4" /> Minha Conta
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => (window.location.href = "/")} className="cursor-pointer text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" /> Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
 

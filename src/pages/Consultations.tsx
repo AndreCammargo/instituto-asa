@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Stethoscope, Search, User, Calendar, Clock, Plus } from "lucide-react";
+import { Stethoscope, Search, User, Calendar, Clock, Plus, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -75,6 +75,9 @@ const Consultations = () => {
   return (
     <Layout>
       <div className="space-y-6">
+        <Button variant="outline" className="gap-2" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
         <div className="bg-gradient-card rounded-lg p-6 shadow-card">
           <div className="flex items-center gap-3">
             <Stethoscope className="h-8 w-8 text-medical-blue" />

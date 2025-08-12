@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, UserPlus, Stethoscope, LogOut } from "lucide-react";
+import { Home, UserPlus, Stethoscope, LogOut } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
 
@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Acesso à Conta", url: "/account", icon: User },
-  { title: "Cadastro de Acolhido", url: "/register-patient", icon: UserPlus },
+  { title: "Tela Principal", url: "/dashboard", icon: Home },
+  { title: "Acolhido", url: "/acolhidos", icon: UserPlus },
   { title: "Consultas", url: "/consultations", icon: Stethoscope },
 ];
 
