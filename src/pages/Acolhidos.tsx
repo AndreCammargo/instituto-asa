@@ -4,19 +4,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, UserPlus, Calendar, ArrowLeft, Plus } from "lucide-react";
-import { useState } from "react";
+import { Users, Search, UserPlus, Calendar, ArrowLeft, Plus, Settings, UserCheck } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Acolhidos = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const patients = [
-    { id: 1, name: "João Silva", cpf: "123.456.789-00", status: "Ativo", since: "2023-11-02" },
-    { id: 2, name: "Maria Santos", cpf: "987.654.321-00", status: "Ativo", since: "2023-09-18" },
-    { id: 3, name: "Pedro Oliveira", cpf: "456.789.123-00", status: "Em Pausa", since: "2024-01-04" },
-  ];
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  const fetchPatients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setPatients(data || []);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = patients.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.cpf.includes(searchTerm)
@@ -42,9 +59,17 @@ const Acolhidos = () => {
                 <p className="text-muted-foreground">Listagem de acolhidos cadastrados</p>
               </div>
             </div>
-            <Button className="gap-2 bg-gradient-primary" onClick={() => navigate("/register-patient")}> 
-              <Plus className="h-4 w-4" /> Novo Acolhido
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => navigate("/therapists")}>
+                <UserCheck className="h-4 w-4" /> Responsáveis
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => navigate("/methods")}>
+                <Settings className="h-4 w-4" /> Métodos
+              </Button>
+              <Button className="gap-2 bg-gradient-primary" onClick={() => navigate("/register-patient")}> 
+                <Plus className="h-4 w-4" /> Novo Acolhido
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -69,10 +94,12 @@ const Acolhidos = () => {
             <CardDescription>{filtered.length} registro(s) encontrado(s)</CardDescription>
           </CardHeader>
           <CardContent>
-            {filtered.length ? (
+            {loading ? (
+              <div className="text-muted-foreground">Carregando...</div>
+            ) : filtered.length ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filtered.map((p) => (
-                  <Card key={p.id} className="border-2 hover:border-medical-blue transition-colors cursor-pointer" onClick={() => navigate(`/consultation-details/${p.id}`)}>
+                  <Card key={p.id} className="border-2 hover:border-medical-blue transition-colors cursor-pointer" onClick={() => navigate(`/patient/${p.id}`)}>
                     <CardContent className="p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="font-semibold">{p.name}</div>
@@ -80,11 +107,8 @@ const Acolhidos = () => {
                       </div>
                       <div className="text-sm text-muted-foreground">CPF: {p.cpf}</div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" /> Desde {new Date(p.since).toLocaleDateString('pt-BR')}
+                        <Calendar className="h-4 w-4" /> Desde {new Date(p.created_at).toLocaleDateString('pt-BR')}
                       </div>
-                      <Button size="sm" className="w-full bg-gradient-primary" onClick={(e)=>{e.stopPropagation(); navigate(`/consultation-details/${p.id}`)}}>
-                        Ver Consultas
-                      </Button>
                     </CardContent>
                   </Card>
                 ))}

@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Account from "./pages/Account";
 import Acolhidos from "./pages/Acolhidos";
 import RegisterPatient from "./pages/RegisterPatient";
+import PatientDetails from "./pages/PatientDetails";
+import Therapists from "./pages/Therapists";
+import Methods from "./pages/Methods";
 import Consultations from "./pages/Consultations";
 import NewConsultation from "./pages/NewConsultation";
 import ConsultationDetails from "./pages/ConsultationDetails";
@@ -31,6 +34,10 @@ const App = () => (
           <Route path="/account" element={<Account />} />
           <Route path="/acolhidos" element={<Acolhidos />} />
           <Route path="/register-patient" element={<RegisterPatient />} />
+          <Route path="/patient/:id" element={<PatientDetails />} />
+          <Route path="/patient/new" element={<PatientDetails />} />
+          <Route path="/therapists" element={<Therapists />} />
+          <Route path="/methods" element={<Methods />} />
           <Route path="/consultations" element={<Consultations />} />
           <Route path="/new-consultation" element={<NewConsultation />} />
           <Route path="/consultation-details/:patientId" element={<ConsultationDetails />} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,8 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/Layout";
+import { supabase } from "@/integrations/supabase/client";
+import InputMask from "react-input-mask";
 
 const NewConsultation = () => {
   const navigate = useNavigate();
@@ -24,8 +26,51 @@ const NewConsultation = () => {
     observations: "",
   });
 
+  const [patients, setPatients] = useState([]);
+  const [therapists, setTherapists] = useState([]);
+  const [methods, setMethods] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [showPatientList, setShowPatientList] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [patientsRes, therapistsRes, methodsRes] = await Promise.all([
+        supabase.from('patients').select('*').order('name'),
+        supabase.from('therapists').select('*').order('name'),
+        supabase.from('methods').select('*').order('name')
+      ]);
+
+      if (patientsRes.data) setPatients(patientsRes.data);
+      if (therapistsRes.data) setTherapists(therapistsRes.data);
+      if (methodsRes.data) setMethods(methodsRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    if (field === 'patientName') {
+      const filtered = patients.filter(p => 
+        p.name.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredPatients(filtered);
+      setShowPatientList(value.length > 0 && filtered.length > 0);
+    }
+  };
+
+  const selectPatient = (patient) => {
+    setFormData(prev => ({
+      ...prev,
+      patientName: patient.name,
+      patientCpf: patient.cpf
+    }));
+    setShowPatientList(false);
   };
 
   const handleSave = () => {
@@ -73,7 +118,7 @@ const NewConsultation = () => {
               <CardDescription>Dados do acolhido para a consulta</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                 <Label htmlFor="patientName">Nome do Acolhido *</Label>
                 <Input
                   id="patientName"
@@ -81,16 +126,37 @@ const NewConsultation = () => {
                   onChange={(e) => handleInputChange("patientName", e.target.value)}
                   placeholder="Digite o nome completo"
                 />
+                {showPatientList && (
+                  <div className="absolute top-full left-0 right-0 z-10 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {filteredPatients.map((patient) => (
+                      <div
+                        key={patient.id}
+                        className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                        onClick={() => selectPatient(patient)}
+                      >
+                        <div className="font-medium">{patient.name}</div>
+                        <div className="text-sm text-muted-foreground">{patient.cpf}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="patientCpf">CPF</Label>
-                <Input
-                  id="patientCpf"
+                <InputMask
+                  mask="999.999.999-99"
                   value={formData.patientCpf}
                   onChange={(e) => handleInputChange("patientCpf", e.target.value)}
-                  placeholder="000.000.000-00"
-                />
+                >
+                  {(inputProps) => (
+                    <Input
+                      {...inputProps}
+                      id="patientCpf"
+                      placeholder="000.000.000-00"
+                    />
+                  )}
+                </InputMask>
               </div>
             </CardContent>
           </Card>
@@ -108,11 +174,11 @@ const NewConsultation = () => {
                     <SelectValue placeholder="Selecione o tipo de terapia" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="terapia-individual">Terapia Individual</SelectItem>
-                    <SelectItem value="terapia-grupo">Terapia em Grupo</SelectItem>
-                    <SelectItem value="consulta-psiquiatrica">Consulta Psiquiátrica</SelectItem>
-                    <SelectItem value="terapia-familiar">Terapia Familiar</SelectItem>
-                    <SelectItem value="avaliacao-inicial">Avaliação Inicial</SelectItem>
+                    {methods.map((method) => (
+                      <SelectItem key={method.id} value={method.id}>
+                        {method.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -124,10 +190,11 @@ const NewConsultation = () => {
                     <SelectValue placeholder="Selecione o profissional" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="dr-silva">Dr. João Silva - Psicólogo</SelectItem>
-                    <SelectItem value="dra-costa">Dra. Maria Costa - Psiquiatra</SelectItem>
-                    <SelectItem value="dr-santos">Dr. Pedro Santos - Terapeuta</SelectItem>
-                    <SelectItem value="dra-oliveira">Dra. Ana Oliveira - Assistente Social</SelectItem>
+                    {therapists.map((therapist) => (
+                      <SelectItem key={therapist.id} value={therapist.id}>
+                        {therapist.name} {therapist.specialization && `- ${therapist.specialization}`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
