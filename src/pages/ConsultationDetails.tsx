@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Stethoscope, 
   User, 
@@ -17,9 +18,10 @@ import {
   ArrowLeft,
   FileText
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ConsultationDetails = () => {
   const { patientId } = useParams();
@@ -27,6 +29,8 @@ const ConsultationDetails = () => {
   const { toast } = useToast();
   
   const [isAddingObservation, setIsAddingObservation] = useState(false);
+  const [methods, setMethods] = useState([]);
+  const [therapists, setTherapists] = useState([]);
   const [newObservation, setNewObservation] = useState({
     procedure: "",
     responsible: "",
@@ -73,7 +77,33 @@ const ConsultationDetails = () => {
     }
   ]);
 
-  const handleSaveObservation = () => {
+  useEffect(() => {
+    fetchMethodsAndTherapists();
+  }, []);
+
+  const fetchMethodsAndTherapists = async () => {
+    try {
+      const [methodsResponse, therapistsResponse] = await Promise.all([
+        supabase.from('methods').select('*').order('name'),
+        supabase.from('therapists').select('*').order('name')
+      ]);
+
+      if (methodsResponse.error) throw methodsResponse.error;
+      if (therapistsResponse.error) throw therapistsResponse.error;
+
+      setMethods(methodsResponse.data || []);
+      setTherapists(therapistsResponse.data || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível carregar métodos e responsáveis.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveObservation = async () => {
     if (!newObservation.procedure || !newObservation.responsible || !newObservation.observation) {
       toast({
         title: "Campos obrigatórios",
@@ -83,21 +113,50 @@ const ConsultationDetails = () => {
       return;
     }
 
-    const newConsultation = {
-      id: consultations.length + 1,
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      ...newObservation
-    };
+    try {
+      // Salvar observação no banco de dados
+      const { error } = await supabase
+        .from('consultations')
+        .insert({
+          patient_id: patientId,
+          method_id: newObservation.procedure,
+          therapist_id: newObservation.responsible,
+          consultation_date: new Date().toISOString().split('T')[0],
+          consultation_time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          observations: newObservation.observation
+        });
 
-    setConsultations(prev => [newConsultation, ...prev]);
-    setNewObservation({ procedure: "", responsible: "", observation: "" });
-    setIsAddingObservation(false);
-    
-    toast({
-      title: "Observação salva!",
-      description: "Nova observação adicionada com sucesso.",
-    });
+      if (error) throw error;
+
+      // Buscar nome do método e responsável para exibição
+      const selectedMethod = methods.find(m => m.id === newObservation.procedure);
+      const selectedTherapist = therapists.find(t => t.id === newObservation.responsible);
+
+      const newConsultation = {
+        id: consultations.length + 1,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        procedure: selectedMethod?.name || '',
+        responsible: selectedTherapist?.name || '',
+        observation: newObservation.observation
+      };
+
+      setConsultations(prev => [newConsultation, ...prev]);
+      setNewObservation({ procedure: "", responsible: "", observation: "" });
+      setIsAddingObservation(false);
+      
+      toast({
+        title: "Observação salva!",
+        description: "Nova observação adicionada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error saving observation:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar a observação.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -208,22 +267,34 @@ const ConsultationDetails = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="procedure">Procedimento/Terapia</Label>
-                      <Input
-                        id="procedure"
-                        value={newObservation.procedure}
-                        onChange={(e) => setNewObservation(prev => ({ ...prev, procedure: e.target.value }))}
-                        placeholder="Ex: Terapia Individual"
-                      />
+                      <Select value={newObservation.procedure} onValueChange={(value) => setNewObservation(prev => ({ ...prev, procedure: value }))}>
+                        <SelectTrigger className="bg-background border-input hover:bg-accent hover:text-accent-foreground focus:bg-background z-50">
+                          <SelectValue placeholder="Selecione o método" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-border shadow-lg z-[100]">
+                          {methods.map((method) => (
+                            <SelectItem key={method.id} value={method.id} className="hover:bg-accent hover:text-accent-foreground">
+                              {method.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="responsible">Responsável</Label>
-                      <Input
-                        id="responsible"
-                        value={newObservation.responsible}
-                        onChange={(e) => setNewObservation(prev => ({ ...prev, responsible: e.target.value }))}
-                        placeholder="Ex: Dr. Carlos Mendes"
-                      />
+                      <Select value={newObservation.responsible} onValueChange={(value) => setNewObservation(prev => ({ ...prev, responsible: value }))}>
+                        <SelectTrigger className="bg-background border-input hover:bg-accent hover:text-accent-foreground focus:bg-background z-50">
+                          <SelectValue placeholder="Selecione o responsável" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-border shadow-lg z-[100]">
+                          {therapists.map((therapist) => (
+                            <SelectItem key={therapist.id} value={therapist.id} className="hover:bg-accent hover:text-accent-foreground">
+                              {therapist.name} {therapist.specialization && `- ${therapist.specialization}`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   
