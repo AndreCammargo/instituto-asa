@@ -73,7 +73,7 @@ const NewConsultation = () => {
     setShowPatientList(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.patientName || !formData.procedure || !formData.responsible || !formData.date) {
       toast({
         title: "Erro",
@@ -83,12 +83,52 @@ const NewConsultation = () => {
       return;
     }
 
-    toast({
-      title: "Consulta agendada!",
-      description: "A nova consulta foi criada com sucesso.",
-    });
-    
-    navigate("/consultations");
+    try {
+      // Buscar paciente pelo CPF
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('cpf', formData.patientCpf)
+        .single();
+
+      if (patientError || !patientData) {
+        toast({
+          title: "Paciente não encontrado",
+          description: "Não foi possível encontrar um paciente com este CPF.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Inserir consulta
+      const { error: consultationError } = await supabase
+        .from('consultations')
+        .insert({
+          patient_id: patientData.id,
+          method_id: formData.procedure,
+          therapist_id: formData.responsible,
+          consultation_date: formData.date,
+          consultation_time: formData.time || null,
+          observations: formData.observations || null
+        });
+
+      if (consultationError) throw consultationError;
+
+      toast({
+        title: "Consulta agendada!",
+        description: "A nova consulta foi criada com sucesso.",
+      });
+      
+      navigate("/consultations");
+      
+    } catch (error) {
+      console.error('Error saving consultation:', error);
+      toast({
+        title: "Erro ao agendar",
+        description: "Ocorreu um erro ao agendar a consulta.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

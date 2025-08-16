@@ -14,6 +14,67 @@ export type Database = {
   }
   public: {
     Tables: {
+      consultations: {
+        Row: {
+          consultation_date: string
+          consultation_time: string | null
+          created_at: string
+          id: string
+          method_id: string | null
+          observations: string | null
+          patient_id: string
+          status: string
+          therapist_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          consultation_date: string
+          consultation_time?: string | null
+          created_at?: string
+          id?: string
+          method_id?: string | null
+          observations?: string | null
+          patient_id: string
+          status?: string
+          therapist_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consultation_date?: string
+          consultation_time?: string | null
+          created_at?: string
+          id?: string
+          method_id?: string | null
+          observations?: string | null
+          patient_id?: string
+          status?: string
+          therapist_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_method_id_fkey"
+            columns: ["method_id"]
+            isOneToOne: false
+            referencedRelation: "methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       methods: {
         Row: {
           created_at: string
