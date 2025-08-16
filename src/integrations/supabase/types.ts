@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -40,27 +40,93 @@ export type Database = {
       }
       patients: {
         Row: {
+          comorbidades: string | null
+          cor: string | null
           cpf: string
           created_at: string
+          data_nascimento: string | null
+          dependencia_quimica: Json | null
+          endereco: string | null
+          escolaridade: string | null
+          estado_civil: string | null
+          historia_familiar: string | null
           id: string
+          idade: number | null
+          mae: string | null
+          motivacao_tratamento: string | null
+          nacionalidade: string | null
           name: string
+          naturalidade: string | null
+          observacoes: string | null
+          pai: string | null
+          profissao: string | null
+          prole: string | null
+          quantidade_filhos: number | null
+          religiao: string | null
+          renda_pessoal: string | null
+          rg: string | null
           status: string
+          substancia_preferencia: string | null
           updated_at: string
         }
         Insert: {
+          comorbidades?: string | null
+          cor?: string | null
           cpf: string
           created_at?: string
+          data_nascimento?: string | null
+          dependencia_quimica?: Json | null
+          endereco?: string | null
+          escolaridade?: string | null
+          estado_civil?: string | null
+          historia_familiar?: string | null
           id?: string
+          idade?: number | null
+          mae?: string | null
+          motivacao_tratamento?: string | null
+          nacionalidade?: string | null
           name: string
+          naturalidade?: string | null
+          observacoes?: string | null
+          pai?: string | null
+          profissao?: string | null
+          prole?: string | null
+          quantidade_filhos?: number | null
+          religiao?: string | null
+          renda_pessoal?: string | null
+          rg?: string | null
           status?: string
+          substancia_preferencia?: string | null
           updated_at?: string
         }
         Update: {
+          comorbidades?: string | null
+          cor?: string | null
           cpf?: string
           created_at?: string
+          data_nascimento?: string | null
+          dependencia_quimica?: Json | null
+          endereco?: string | null
+          escolaridade?: string | null
+          estado_civil?: string | null
+          historia_familiar?: string | null
           id?: string
+          idade?: number | null
+          mae?: string | null
+          motivacao_tratamento?: string | null
+          nacionalidade?: string | null
           name?: string
+          naturalidade?: string | null
+          observacoes?: string | null
+          pai?: string | null
+          profissao?: string | null
+          prole?: string | null
+          quantidade_filhos?: number | null
+          religiao?: string | null
+          renda_pessoal?: string | null
+          rg?: string | null
           status?: string
+          substancia_preferencia?: string | null
           updated_at?: string
         }
         Relationships: []

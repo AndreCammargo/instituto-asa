@@ -60,12 +60,6 @@ const Acolhidos = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="gap-2" onClick={() => navigate("/therapists")}>
-                <UserCheck className="h-4 w-4" /> Responsáveis
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={() => navigate("/methods")}>
-                <Settings className="h-4 w-4" /> Métodos
-              </Button>
               <Button className="gap-2 bg-gradient-primary" onClick={() => navigate("/register-patient")}> 
                 <Plus className="h-4 w-4" /> Novo Acolhido
               </Button>
@@ -105,7 +99,15 @@ const Acolhidos = () => {
                         <div className="font-semibold">{p.name}</div>
                         <Badge variant="outline" className={statusCls(p.status)}>{p.status}</Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground">CPF: {p.cpf}</div>
+                      <div className="grid grid-cols-1 gap-2 text-sm text-muted-foreground">
+                        <div>CPF: {p.cpf}</div>
+                        {p.rg && <div>RG: {p.rg}</div>}
+                        {p.data_nascimento && <div>Nascimento: {new Date(p.data_nascimento).toLocaleDateString('pt-BR')}</div>}
+                        {p.idade && <div>Idade: {p.idade} anos</div>}
+                        {p.naturalidade && <div>Naturalidade: {p.naturalidade}</div>}
+                        {p.profissao && <div>Profissão: {p.profissao}</div>}
+                        {p.escolaridade && <div>Escolaridade: {p.escolaridade}</div>}
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" /> Desde {new Date(p.created_at).toLocaleDateString('pt-BR')}
                       </div>

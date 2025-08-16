@@ -10,9 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { UserPlus, Save, RotateCcw, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const RegisterPatient = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     // Dados pessoais
     acolhido: "",
@@ -76,7 +79,7 @@ const RegisterPatient = () => {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.acolhido || !formData.cpf) {
       toast({
         title: "Campos obrigatórios",
@@ -86,10 +89,57 @@ const RegisterPatient = () => {
       return;
     }
 
-    toast({
-      title: "Acolhido cadastrado!",
-      description: `${formData.acolhido} foi cadastrado com sucesso.`,
-    });
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .insert({
+          name: formData.acolhido,
+          cpf: formData.cpf,
+          rg: formData.rg,
+          data_nascimento: formData.dataNascimento || null,
+          idade: formData.idade ? parseInt(formData.idade) : null,
+          cor: formData.cor,
+          naturalidade: formData.naturalidade,
+          nacionalidade: formData.nacionalidade,
+          mae: formData.mae,
+          pai: formData.pai,
+          endereco: formData.endereco,
+          estado_civil: formData.estadoCivil,
+          prole: formData.prole,
+          quantidade_filhos: formData.quantidadeFilhos ? parseInt(formData.quantidadeFilhos) : null,
+          profissao: formData.profissao,
+          renda_pessoal: formData.rendaPessoal,
+          escolaridade: formData.escolaridade,
+          religiao: formData.religiao,
+          dependencia_quimica: formData.dependenciaQuimica,
+          substancia_preferencia: formData.substanciaPreferencia,
+          historia_familiar: formData.historiaFamiliar,
+          comorbidades: formData.comorbidades,
+          motivacao_tratamento: formData.motivacaoTratamento,
+          observacoes: formData.observacoes,
+          status: 'Ativo'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Acolhido cadastrado!",
+        description: `${formData.acolhido} foi cadastrado com sucesso.`,
+      });
+
+      // Redirecionar para a lista de acolhidos
+      navigate('/acolhidos');
+      
+    } catch (error) {
+      console.error('Error saving patient:', error);
+      toast({
+        title: "Erro ao cadastrar",
+        description: "Ocorreu um erro ao salvar os dados do acolhido.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleReset = () => {

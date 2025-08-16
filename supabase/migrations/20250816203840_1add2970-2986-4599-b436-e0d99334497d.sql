@@ -1,0 +1,23 @@
+-- Adicionar campos necessários para os dados completos do acolhido na tabela patients
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS rg TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS data_nascimento DATE;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS idade INTEGER;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS cor TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS naturalidade TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS nacionalidade TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS mae TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS pai TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS endereco TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS estado_civil TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS prole TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS quantidade_filhos INTEGER;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS profissao TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS renda_pessoal TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS escolaridade TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS religiao TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS dependencia_quimica JSONB;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS substancia_preferencia TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS historia_familiar TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS comorbidades TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS motivacao_tratamento TEXT;
+ALTER TABLE public.patients ADD COLUMN IF NOT EXISTS observacoes TEXT;
