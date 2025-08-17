@@ -73,6 +73,27 @@ export type Database = {
             referencedRelation: "therapists"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_consultations_method"
+            columns: ["method_id"]
+            isOneToOne: false
+            referencedRelation: "methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_consultations_patient"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_consultations_therapist"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
         ]
       }
       methods: {
