@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import InputMask from "react-input-mask";
 
 const RegisterPatient = () => {
   const { toast } = useToast();
@@ -64,6 +65,24 @@ const RegisterPatient = () => {
       ...prev,
       [field]: value
     }));
+    
+    // Calcular idade automaticamente quando a data de nascimento for alterada
+    if (field === "dataNascimento" && value) {
+      const birthDate = new Date(value);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [field]: value,
+        idade: age.toString()
+      }));
+    }
   };
 
   const handleDependencyChange = (substance: string, field: string, value: string | boolean) => {
@@ -238,12 +257,19 @@ const RegisterPatient = () => {
             
             <div className="space-y-2">
               <Label htmlFor="cpf">CPF *</Label>
-              <Input
-                id="cpf"
+              <InputMask
+                mask="999.999.999-99"
                 value={formData.cpf}
                 onChange={(e) => handleInputChange("cpf", e.target.value)}
-                placeholder="000.000.000-00"
-              />
+              >
+                {(inputProps) => (
+                  <Input
+                    {...inputProps}
+                    id="cpf"
+                    placeholder="000.000.000-00"
+                  />
+                )}
+              </InputMask>
             </div>
             
             <div className="space-y-2">
@@ -264,6 +290,8 @@ const RegisterPatient = () => {
                 value={formData.idade}
                 onChange={(e) => handleInputChange("idade", e.target.value)}
                 placeholder="Anos"
+                readOnly
+                className="bg-muted"
               />
             </div>
             
