@@ -45,7 +45,7 @@ const Dashboard = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-medical-blue">
-                Bem-vindo ao Acolhido Care
+                Instituto Asa
               </h1>
               <p className="text-muted-foreground">
                 Sistema de gestão e acompanhamento de pacientes
