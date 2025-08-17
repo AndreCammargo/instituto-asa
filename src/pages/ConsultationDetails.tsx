@@ -29,9 +29,16 @@ const ConsultationDetails = () => {
   const { toast } = useToast();
   
   const [isAddingObservation, setIsAddingObservation] = useState(false);
+  const [isEditingConsultation, setIsEditingConsultation] = useState(null);
   const [methods, setMethods] = useState([]);
   const [therapists, setTherapists] = useState([]);
   const [newObservation, setNewObservation] = useState({
+    procedure: "",
+    responsible: "",
+    observation: ""
+  });
+  const [editingObservation, setEditingObservation] = useState({
+    id: 0,
     procedure: "",
     responsible: "",
     observation: ""
@@ -154,6 +161,57 @@ const ConsultationDetails = () => {
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar a observação.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEditingConsultation = (consultation) => {
+    setIsEditingConsultation(consultation.id);
+    setEditingObservation({
+      id: consultation.id,
+      procedure: consultation.procedure,
+      responsible: consultation.responsible,
+      observation: consultation.observation
+    });
+  };
+
+  const handleUpdateObservation = async () => {
+    if (!editingObservation.procedure || !editingObservation.responsible || !editingObservation.observation) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Aqui você implementaria a atualização no banco de dados
+      // Por enquanto vamos atualizar localmente
+      setConsultations(prev => prev.map(consultation =>
+        consultation.id === editingObservation.id
+          ? {
+              ...consultation,
+              procedure: editingObservation.procedure,
+              responsible: editingObservation.responsible,
+              observation: editingObservation.observation
+            }
+          : consultation
+      ));
+
+      setIsEditingConsultation(null);
+      setEditingObservation({ id: 0, procedure: "", responsible: "", observation: "" });
+      
+      toast({
+        title: "Consulta atualizada!",
+        description: "As alterações foram salvas com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error updating observation:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Ocorreu um erro ao atualizar a consulta.",
         variant: "destructive",
       });
     }
@@ -354,36 +412,118 @@ const ConsultationDetails = () => {
                           </div>
                         </div>
                         
-                        <div className="flex-1 min-w-0">
-                          <Card className="shadow-sm">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Calendar className="h-4 w-4" />
-                                  {new Date(consultation.date).toLocaleDateString('pt-BR')}
-                                  <Clock className="h-4 w-4 ml-2" />
-                                  {consultation.time}
-                                </div>
-                                <Button variant="ghost" size="sm">
-                                  <Edit3 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-medical-blue">
-                                  {consultation.procedure}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Responsável: {consultation.responsible}
-                                </p>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <p className="text-sm text-foreground leading-relaxed">
-                                {consultation.observation}
-                              </p>
-                            </CardContent>
-                          </Card>
-                        </div>
+                         <div className="flex-1 min-w-0">
+                           <Card 
+                             className="shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                             onClick={() => startEditingConsultation(consultation)}
+                           >
+                             {isEditingConsultation === consultation.id ? (
+                               <div className="p-4 space-y-4">
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                   <div className="space-y-2">
+                                     <Label>Procedimento/Terapia</Label>
+                                     <Select 
+                                       value={editingObservation.procedure} 
+                                       onValueChange={(value) => setEditingObservation(prev => ({ ...prev, procedure: value }))}
+                                     >
+                                       <SelectTrigger className="bg-background border-input hover:bg-accent hover:text-accent-foreground focus:bg-background z-50">
+                                         <SelectValue placeholder="Selecione o método" />
+                                       </SelectTrigger>
+                                       <SelectContent className="bg-background border-border shadow-lg z-[100]">
+                                         {methods.map((method) => (
+                                           <SelectItem key={method.id} value={method.name} className="hover:bg-accent hover:text-accent-foreground">
+                                             {method.name}
+                                           </SelectItem>
+                                         ))}
+                                       </SelectContent>
+                                     </Select>
+                                   </div>
+                                   
+                                   <div className="space-y-2">
+                                     <Label>Responsável</Label>
+                                     <Select 
+                                       value={editingObservation.responsible} 
+                                       onValueChange={(value) => setEditingObservation(prev => ({ ...prev, responsible: value }))}
+                                     >
+                                       <SelectTrigger className="bg-background border-input hover:bg-accent hover:text-accent-foreground focus:bg-background z-50">
+                                         <SelectValue placeholder="Selecione o responsável" />
+                                       </SelectTrigger>
+                                       <SelectContent className="bg-background border-border shadow-lg z-[100]">
+                                         {therapists.map((therapist) => (
+                                           <SelectItem key={therapist.id} value={therapist.name} className="hover:bg-accent hover:text-accent-foreground">
+                                             {therapist.name} {therapist.specialization && `- ${therapist.specialization}`}
+                                           </SelectItem>
+                                         ))}
+                                       </SelectContent>
+                                     </Select>
+                                   </div>
+                                 </div>
+                                 
+                                 <div className="space-y-2">
+                                   <Label>Observação da Consulta</Label>
+                                   <Textarea
+                                     value={editingObservation.observation}
+                                     onChange={(e) => setEditingObservation(prev => ({ ...prev, observation: e.target.value }))}
+                                     placeholder="Descreva os detalhes da sessão, evolução do paciente, próximos passos..."
+                                     rows={4}
+                                   />
+                                 </div>
+                                 
+                                 <div className="flex gap-2">
+                                   <Button onClick={handleUpdateObservation} className="bg-gradient-primary">
+                                     <Save className="h-4 w-4 mr-2" />
+                                     Salvar Alterações
+                                   </Button>
+                                   <Button 
+                                     variant="outline" 
+                                     onClick={() => {
+                                       setIsEditingConsultation(null);
+                                       setEditingObservation({ id: 0, procedure: "", responsible: "", observation: "" });
+                                     }}
+                                   >
+                                     Cancelar
+                                   </Button>
+                                 </div>
+                               </div>
+                             ) : (
+                               <>
+                                 <CardHeader className="pb-3">
+                                   <div className="flex items-center justify-between">
+                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                       <Calendar className="h-4 w-4" />
+                                       {new Date(consultation.date).toLocaleDateString('pt-BR')}
+                                       <Clock className="h-4 w-4 ml-2" />
+                                       {consultation.time}
+                                     </div>
+                                     <Button 
+                                       variant="ghost" 
+                                       size="sm"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         startEditingConsultation(consultation);
+                                       }}
+                                     >
+                                       <Edit3 className="h-4 w-4" />
+                                     </Button>
+                                   </div>
+                                   <div>
+                                     <h4 className="font-semibold text-medical-blue">
+                                       {consultation.procedure}
+                                     </h4>
+                                     <p className="text-sm text-muted-foreground">
+                                       Responsável: {consultation.responsible}
+                                     </p>
+                                   </div>
+                                 </CardHeader>
+                                 <CardContent className="pt-0">
+                                   <p className="text-sm text-foreground leading-relaxed">
+                                     {consultation.observation}
+                                   </p>
+                                 </CardContent>
+                               </>
+                             )}
+                           </Card>
+                         </div>
                       </div>
                     </div>
                   ))}
