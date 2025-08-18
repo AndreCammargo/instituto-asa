@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
 
@@ -16,10 +17,15 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
+    // Redirect if already authenticated
+    if (!loading && user) {
+      navigate("/dashboard", { replace: true });
+    }
     createAdminUser();
-  }, []);
+  }, [user, loading, navigate]);
 
   const createAdminUser = async () => {
     // Check if admin user already exists
@@ -31,10 +37,12 @@ const Login = () => {
     if (existingProfiles && existingProfiles.length === 0) {
       // Create admin user if it doesn't exist
       try {
+        const redirectUrl = `${window.location.origin}/dashboard`;
         const { error } = await supabase.auth.signUp({
           email: 'admin@institutoasa.com',
-          password: 'admin',
+          password: 'AdminInstitutoAsa2024!',
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               username: 'admin',
               name: 'Administrador'
@@ -82,11 +90,28 @@ const Login = () => {
         return;
       }
 
-      // For admin user, use email
-      const loginEmail = username === 'admin' ? 'admin@institutoasa.com' : profile.user_id;
+      // Use proper email for login based on username
+      let loginEmail = '';
+      if (username === 'admin') {
+        loginEmail = 'admin@institutoasa.com';
+      } else {
+        // For regular users, get email from auth.users via profile
+        const { data: userData } = await supabase.auth.admin.getUserById(profile.user_id);
+        if (userData.user?.email) {
+          loginEmail = userData.user.email;
+        } else {
+          toast({
+            title: "Erro no login",
+            description: "Email do usuário não encontrado.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
       
       const { error } = await supabase.auth.signInWithPassword({
-        email: username === 'admin' ? 'admin@institutoasa.com' : `${username}@temp.com`, 
+        email: loginEmail,
         password: password,
       });
 

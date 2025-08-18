@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
@@ -22,30 +24,32 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/acolhidos" element={<Acolhidos />} />
-          <Route path="/register-patient" element={<RegisterPatient />} />
-          <Route path="/patient/:id" element={<PatientDetails />} />
-          <Route path="/patient/new" element={<PatientDetails />} />
-          <Route path="/therapists" element={<Therapists />} />
-          <Route path="/methods" element={<Methods />} />
-          <Route path="/consultations" element={<Consultations />} />
-          <Route path="/new-consultation" element={<NewConsultation />} />
-          <Route path="/consultation-details/:patientId" element={<ConsultationDetails />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+            <Route path="/acolhidos" element={<ProtectedRoute><Acolhidos /></ProtectedRoute>} />
+            <Route path="/register-patient" element={<ProtectedRoute><RegisterPatient /></ProtectedRoute>} />
+            <Route path="/patient/:id" element={<ProtectedRoute><PatientDetails /></ProtectedRoute>} />
+            <Route path="/patient/new" element={<ProtectedRoute><PatientDetails /></ProtectedRoute>} />
+            <Route path="/therapists" element={<ProtectedRoute><Therapists /></ProtectedRoute>} />
+            <Route path="/methods" element={<ProtectedRoute><Methods /></ProtectedRoute>} />
+            <Route path="/consultations" element={<ProtectedRoute><Consultations /></ProtectedRoute>} />
+            <Route path="/new-consultation" element={<ProtectedRoute><NewConsultation /></ProtectedRoute>} />
+            <Route path="/consultation-details/:patientId" element={<ProtectedRoute><ConsultationDetails /></ProtectedRoute>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
