@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
 
 const Login = () => {
@@ -16,27 +17,101 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    createAdminUser();
+  }, []);
+
+  const createAdminUser = async () => {
+    // Check if admin user already exists
+    const { data: existingProfiles } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', 'admin');
+
+    if (existingProfiles && existingProfiles.length === 0) {
+      // Create admin user if it doesn't exist
+      try {
+        const { error } = await supabase.auth.signUp({
+          email: 'admin@institutoasa.com',
+          password: 'admin',
+          options: {
+            data: {
+              username: 'admin',
+              name: 'Administrador'
+            }
+          }
+        });
+        if (!error) {
+          console.log('Admin user created successfully');
+        }
+      } catch (error) {
+        console.log('Admin user might already exist');
+      }
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login process
-    setTimeout(() => {
-      if (username && password) {
+    if (!username || !password) {
+      toast({
+        title: "Erro no login",
+        description: "Por favor, preencha todos os campos.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // First check if user exists in profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username)
+        .single();
+
+      if (!profile) {
+        toast({
+          title: "Erro no login",
+          description: "Usuário não encontrado.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // For admin user, use email
+      const loginEmail = username === 'admin' ? 'admin@institutoasa.com' : profile.user_id;
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email: username === 'admin' ? 'admin@institutoasa.com' : `${username}@temp.com`, 
+        password: password,
+      });
+
+      if (error) {
+        toast({
+          title: "Erro no login",
+          description: "Credenciais inválidas.",
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Login realizado com sucesso!",
           description: "Bem-vindo ao sistema Instituto Asa.",
         });
         navigate("/dashboard");
-      } else {
-        toast({
-          title: "Erro no login",
-          description: "Por favor, preencha todos os campos.",
-          variant: "destructive",
-        });
       }
+    } catch (error) {
+      toast({
+        title: "Erro no login",
+        description: "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (

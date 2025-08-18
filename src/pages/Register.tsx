@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -30,7 +32,7 @@ const Register = () => {
     setIsLoading(true);
 
     // Basic validation
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.name || !formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       toast({
         title: "Erro no cadastro",
         description: "Por favor, preencha todos os campos.",
@@ -50,15 +52,43 @@ const Register = () => {
       return;
     }
 
-    // Simulate registration process
-    setTimeout(() => {
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Você pode fazer login agora.",
+    try {
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            username: formData.username,
+            name: formData.name
+          }
+        }
       });
-      navigate("/");
+
+      if (error) {
+        toast({
+          title: "Erro no cadastro",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description: "Verifique seu email para confirmar a conta.",
+        });
+        navigate("/");
+      }
+    } catch (error) {
+      toast({
+        title: "Erro no cadastro",
+        description: "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -90,6 +120,18 @@ const Register = () => {
                 placeholder="Digite seu nome completo"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
+                className="focus:ring-medical-blue focus:border-medical-blue"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Nome de usuário</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Digite seu nome de usuário"
+                value={formData.username}
+                onChange={(e) => handleInputChange("username", e.target.value)}
                 className="focus:ring-medical-blue focus:border-medical-blue"
               />
             </div>

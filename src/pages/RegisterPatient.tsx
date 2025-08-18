@@ -461,20 +461,22 @@ const RegisterPatient = () => {
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="rendaPessoal">Renda Pessoal</Label>
-              <Select value={formData.rendaPessoal} onValueChange={(value) => handleInputChange("rendaPessoal", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1-salario">1 salário mínimo</SelectItem>
-                  <SelectItem value="2-salarios">2 salários mínimos</SelectItem>
-                  <SelectItem value="3-salarios">3 salários mínimos</SelectItem>
-                  <SelectItem value="mais-3">Mais de 3 salários</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.profissao !== "desempregado" && (
+              <div className="space-y-2">
+                <Label htmlFor="rendaPessoal">Renda Pessoal</Label>
+                <Select value={formData.rendaPessoal} onValueChange={(value) => handleInputChange("rendaPessoal", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-salario">1 salário mínimo</SelectItem>
+                    <SelectItem value="2-salarios">2 salários mínimos</SelectItem>
+                    <SelectItem value="3-salarios">3 salários mínimos</SelectItem>
+                    <SelectItem value="mais-3">Mais de 3 salários</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </CardContent>
         </Card>
 
