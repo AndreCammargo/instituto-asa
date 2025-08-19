@@ -1,36 +1,155 @@
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Users, Calendar, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface DashboardStats {
+  activePatients: number;
+  todayConsultations: number;
+  totalObservations: number;
+}
+
+interface RecentActivity {
+  id: string;
+  action: string;
+  patient_name: string;
+  created_at: string;
+}
 
 const Dashboard = () => {
-  const stats = [
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>({
+    activePatients: 0,
+    todayConsultations: 0,
+    totalObservations: 0
+  });
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Buscar pacientes ativos
+      const { count: activePatients } = await supabase
+        .from('patients')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Ativo');
+
+      // Buscar consultas de hoje
+      const today = new Date().toISOString().split('T')[0];
+      const { count: todayConsultations } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .eq('consultation_date', today);
+
+      // Buscar total de observações (consultas com observações)
+      const { count: totalObservations } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .not('observations', 'is', null)
+        .neq('observations', '');
+
+      // Buscar atividades recentes (últimos pacientes cadastrados e consultas)
+      const { data: recentPatients } = await supabase
+        .from('patients')
+        .select('id, name, created_at')
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      const { data: recentConsultations } = await supabase
+        .from('consultations')
+        .select(`
+          id, 
+          created_at, 
+          status,
+          patients (name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(2);
+
+      const activities: RecentActivity[] = [];
+
+      // Adicionar pacientes recentes
+      recentPatients?.forEach(patient => {
+        activities.push({
+          id: patient.id,
+          action: 'Novo acolhido cadastrado',
+          patient_name: patient.name,
+          created_at: patient.created_at
+        });
+      });
+
+      // Adicionar consultas recentes
+      recentConsultations?.forEach(consultation => {
+        activities.push({
+          id: consultation.id,
+          action: consultation.status === 'Realizada' ? 'Consulta realizada' : 'Consulta agendada',
+          patient_name: (consultation.patients as any)?.name || 'N/A',
+          created_at: consultation.created_at
+        });
+      });
+
+      // Ordenar por data mais recente
+      activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setStats({
+        activePatients: activePatients || 0,
+        todayConsultations: todayConsultations || 0,
+        totalObservations: totalObservations || 0
+      });
+
+      setRecentActivities(activities.slice(0, 3));
+    } catch (error) {
+      console.error('Erro ao buscar dados do dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Agora mesmo';
+    if (diffInHours === 1) return '1 hora atrás';
+    if (diffInHours < 24) return `${diffInHours} horas atrás`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return '1 dia atrás';
+    if (diffInDays < 7) return `${diffInDays} dias atrás`;
+    
+    return format(date, 'dd/MM/yyyy', { locale: ptBR });
+  };
+
+  const dashboardStats = [
     {
       title: "Acolhidos Ativos",
-      value: "42",
+      value: stats.activePatients.toString(),
       description: "Pacientes em acompanhamento",
       icon: Users,
       color: "text-medical-blue"
     },
     {
       title: "Consultas Hoje",
-      value: "8",
+      value: stats.todayConsultations.toString(),
       description: "Sessões agendadas",
       icon: Calendar,
       color: "text-medical-accent"
     },
     {
       title: "Observações",
-      value: "156",
+      value: stats.totalObservations.toString(),
       description: "Registros médicos",
       icon: FileText,
       color: "text-success"
-    },
-    {
-      title: "Taxa de Adesão",
-      value: "87%",
-      description: "Participação no programa",
-      icon: Activity,
-      color: "text-warning"
     }
   ];
 
@@ -55,8 +174,8 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => {
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {dashboardStats.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <Card key={index} className="shadow-card hover:shadow-elevated transition-shadow">
@@ -79,7 +198,10 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
+          <Card 
+            className="shadow-card hover:shadow-elevated transition-shadow cursor-pointer"
+            onClick={() => navigate('/register-patient')}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-medical-blue" />
@@ -91,7 +213,10 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          <Card className="shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
+          <Card 
+            className="shadow-card hover:shadow-elevated transition-shadow cursor-pointer"
+            onClick={() => navigate('/new-consultation')}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-medical-accent" />
@@ -126,19 +251,25 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { action: "Novo acolhido cadastrado", patient: "João Silva", time: "2 horas atrás" },
-                { action: "Consulta realizada", patient: "Maria Santos", time: "4 horas atrás" },
-                { action: "Observação adicionada", patient: "Pedro Oliveira", time: "6 horas atrás" },
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div>
-                    <p className="font-medium">{activity.action}</p>
-                    <p className="text-sm text-muted-foreground">Paciente: {activity.patient}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{activity.time}</span>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-medical-blue"></div>
                 </div>
-              ))}
+              ) : recentActivities.length > 0 ? (
+                recentActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div>
+                      <p className="font-medium">{activity.action}</p>
+                      <p className="text-sm text-muted-foreground">Paciente: {activity.patient_name}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{formatTimeAgo(activity.created_at)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma atividade recente encontrada</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
