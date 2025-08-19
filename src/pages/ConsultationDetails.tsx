@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Stethoscope, 
@@ -44,7 +45,8 @@ const ConsultationDetails = () => {
     id: 0,
     procedure: "",
     responsible: "",
-    observation: ""
+    observation: "",
+    status: ""
   });
 
   useEffect(() => {
@@ -109,7 +111,8 @@ const ConsultationDetails = () => {
         responsible: therapistRes?.data?.name || "Não informado",
         observation: consultation.observations || "Sem observações",
         method_id: consultation.method_id,
-        therapist_id: consultation.therapist_id
+        therapist_id: consultation.therapist_id,
+        status: consultation.status
       });
     }
 
@@ -188,7 +191,8 @@ const ConsultationDetails = () => {
       id: consultation.id,
       procedure: consultation.procedure,
       responsible: consultation.responsible,
-      observation: consultation.observation
+      observation: consultation.observation,
+      status: consultation.status
     });
   };
 
@@ -203,21 +207,32 @@ const ConsultationDetails = () => {
     }
 
     try {
-      // Aqui você implementaria a atualização no banco de dados
-      // Por enquanto vamos atualizar localmente
+      // Atualizar no banco de dados
+      const { error } = await supabase
+        .from('consultations')
+        .update({
+          observations: editingObservation.observation,
+          status: editingObservation.status
+        })
+        .eq('id', editingObservation.id.toString());
+
+      if (error) throw error;
+
+      // Atualizar localmente
       setConsultations(prev => prev.map(consultation =>
         consultation.id === editingObservation.id
           ? {
               ...consultation,
               procedure: editingObservation.procedure,
               responsible: editingObservation.responsible,
-              observation: editingObservation.observation
+              observation: editingObservation.observation,
+              status: editingObservation.status
             }
           : consultation
       ));
 
       setIsEditingConsultation(null);
-      setEditingObservation({ id: 0, procedure: "", responsible: "", observation: "" });
+      setEditingObservation({ id: 0, procedure: "", responsible: "", observation: "", status: "" });
       
       toast({
         title: "Consulta atualizada!",
@@ -496,28 +511,44 @@ const ConsultationDetails = () => {
                                    </div>
                                  </div>
                                  
-                                 <div className="space-y-2">
-                                   <Label>Observação da Consulta</Label>
-                                   <Textarea
-                                     value={editingObservation.observation}
-                                     onChange={(e) => setEditingObservation(prev => ({ ...prev, observation: e.target.value }))}
-                                     placeholder="Descreva os detalhes da sessão, evolução do paciente, próximos passos..."
-                                     rows={4}
-                                   />
-                                 </div>
+                                  <div className="space-y-2">
+                                    <Label>Observação da Consulta</Label>
+                                    <Textarea
+                                      value={editingObservation.observation}
+                                      onChange={(e) => setEditingObservation(prev => ({ ...prev, observation: e.target.value }))}
+                                      placeholder="Descreva os detalhes da sessão, evolução do paciente, próximos passos..."
+                                      rows={4}
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox 
+                                      id="finalizar-consulta"
+                                      checked={editingObservation.status === "Finalizada"}
+                                      onCheckedChange={(checked) => 
+                                        setEditingObservation(prev => ({ 
+                                          ...prev, 
+                                          status: checked ? "Finalizada" : "Agendada" 
+                                        }))
+                                      }
+                                    />
+                                    <Label htmlFor="finalizar-consulta" className="text-sm font-medium">
+                                      Finalizar consulta
+                                    </Label>
+                                  </div>
                                  
                                  <div className="flex gap-2">
                                    <Button onClick={handleUpdateObservation} className="bg-gradient-primary">
                                      <Save className="h-4 w-4 mr-2" />
                                      Salvar Alterações
                                    </Button>
-                                   <Button 
-                                     variant="outline" 
-                                     onClick={() => {
-                                       setIsEditingConsultation(null);
-                                       setEditingObservation({ id: 0, procedure: "", responsible: "", observation: "" });
-                                     }}
-                                   >
+                                    <Button 
+                                      variant="outline" 
+                                      onClick={() => {
+                                        setIsEditingConsultation(null);
+                                        setEditingObservation({ id: 0, procedure: "", responsible: "", observation: "", status: "" });
+                                      }}
+                                    >
                                      Cancelar
                                    </Button>
                                  </div>
@@ -525,13 +556,19 @@ const ConsultationDetails = () => {
                              ) : (
                                <>
                                  <CardHeader className="pb-3">
-                                   <div className="flex items-center justify-between">
-                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                       <Calendar className="h-4 w-4" />
-                                       {new Date(consultation.date).toLocaleDateString('pt-BR')}
-                                       <Clock className="h-4 w-4 ml-2" />
-                                       {consultation.time}
-                                     </div>
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Calendar className="h-4 w-4" />
+                                        {new Date(consultation.date).toLocaleDateString('pt-BR')}
+                                        <Clock className="h-4 w-4 ml-2" />
+                                        {consultation.time}
+                                        <Badge 
+                                          variant={consultation.status === "Finalizada" ? "default" : "secondary"}
+                                          className={consultation.status === "Finalizada" ? "bg-green-100 text-green-800" : ""}
+                                        >
+                                          {consultation.status}
+                                        </Badge>
+                                      </div>
                                      <Button 
                                        variant="ghost" 
                                        size="sm"
