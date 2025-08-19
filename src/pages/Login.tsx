@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,45 +24,13 @@ const Login = () => {
     if (!loading && user) {
       navigate("/dashboard", { replace: true });
     }
-    createAdminUser();
   }, [user, loading, navigate]);
-
-  const createAdminUser = async () => {
-    // Check if admin user already exists
-    const { data: existingProfiles } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('username', 'admin');
-
-    if (existingProfiles && existingProfiles.length === 0) {
-      // Create admin user if it doesn't exist
-      try {
-        const redirectUrl = `${window.location.origin}/dashboard`;
-        const { error } = await supabase.auth.signUp({
-          email: 'admin@institutoasa.com',
-          password: 'AdminInstitutoAsa2024!',
-          options: {
-            emailRedirectTo: redirectUrl,
-            data: {
-              username: 'admin',
-              name: 'Administrador'
-            }
-          }
-        });
-        if (!error) {
-          console.log('Admin user created successfully');
-        }
-      } catch (error) {
-        console.log('Admin user might already exist');
-      }
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!username || !password) {
+    if (!emailOrUsername || !password) {
       toast({
         title: "Erro no login",
         description: "Por favor, preencha todos os campos.",
@@ -73,43 +41,43 @@ const Login = () => {
     }
 
     try {
-      // First check if user exists in profiles table
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', username)
-        .single();
+      let loginEmail = emailOrUsername;
 
-      if (!profile) {
-        toast({
-          title: "Erro no login",
-          description: "Usuário não encontrado.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Use proper email for login based on username
-      let loginEmail = '';
-      if (username === 'admin') {
-        loginEmail = 'admin@institutoasa.com';
+      // If it's not an email (doesn't contain @), assume it's a username
+      if (!emailOrUsername.includes('@')) {
+      // Handle special case for admin
+      if (emailOrUsername === 'admin') {
+        loginEmail = 'admin@example.com';
       } else {
-        // For regular users, get email from auth.users via profile
-        const { data: userData } = await supabase.auth.admin.getUserById(profile.user_id);
-        if (userData.user?.email) {
-          loginEmail = userData.user.email;
-        } else {
+          // For other usernames, check if profile exists and get email
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('username', emailOrUsername)
+            .maybeSingle();
+
+          if (profileError || !profile) {
+            toast({
+              title: "Erro no login",
+              description: "Usuário não encontrado.",
+              variant: "destructive",
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          // For regular users, we need to use their registered email
+          // Since we can't access auth.users, we'll try common email patterns
           toast({
             title: "Erro no login",
-            description: "Email do usuário não encontrado.",
+            description: "Por favor, use seu email para fazer login.",
             variant: "destructive",
           });
           setIsLoading(false);
           return;
         }
       }
-      
+
       const { error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: password,
@@ -161,13 +129,13 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="emailOrUsername">Email</Label>
               <Input
-                id="username"
+                id="emailOrUsername"
                 type="text"
-                placeholder="Digite seu usuário"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Digite seu email ou usuário"
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
                 className="focus:ring-medical-blue focus:border-medical-blue"
               />
             </div>

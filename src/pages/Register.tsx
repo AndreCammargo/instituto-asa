@@ -62,23 +62,6 @@ const Register = () => {
     }
 
     try {
-      // Check if username already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', formData.username)
-        .single();
-
-      if (existingProfile) {
-        toast({
-          title: "Erro no cadastro",
-          description: "Nome de usuário já existe.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
       const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { error } = await supabase.auth.signUp({
@@ -94,15 +77,23 @@ const Register = () => {
       });
 
       if (error) {
-        toast({
-          title: "Erro no cadastro",
-          description: error.message,
-          variant: "destructive",
-        });
+        if (error.message.includes("already registered")) {
+          toast({
+            title: "Erro no cadastro",
+            description: "Este email já está cadastrado. Tente fazer login.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Erro no cadastro",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar a conta.",
+          description: "Verifique seu email para confirmar a conta antes de fazer login.",
         });
         navigate("/");
       }

@@ -32,6 +32,9 @@ const ConsultationDetails = () => {
   const [isEditingConsultation, setIsEditingConsultation] = useState(null);
   const [methods, setMethods] = useState([]);
   const [therapists, setTherapists] = useState([]);
+  const [patient, setPatient] = useState(null);
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [newObservation, setNewObservation] = useState({
     procedure: "",
     responsible: "",
@@ -44,49 +47,74 @@ const ConsultationDetails = () => {
     observation: ""
   });
 
-  // Mock data para o paciente
-  const patient = {
-    id: patientId,
-    name: "João Silva",
-    cpf: "123.456.789-00",
-    status: "Ativo",
-    therapy: "Terapia Cognitivo-Comportamental",
-    responsible: "Dr. Carlos Mendes",
-    startDate: "2023-06-15",
-    totalConsultations: 8
+  useEffect(() => {
+    if (patientId) {
+      fetchAllData();
+    }
+  }, [patientId]);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchPatientData(),
+        fetchConsultations(),
+        fetchMethodsAndTherapists()
+      ]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Não foi possível carregar as informações.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Mock data para consultas/observações
-  const [consultations, setConsultations] = useState([
-    {
-      id: 1,
-      date: "2024-01-15",
-      procedure: "Terapia Cognitivo-Comportamental",
-      responsible: "Dr. Carlos Mendes",
-      observation: "Paciente demonstrou boa receptividade ao tratamento. Relatou diminuição da ansiedade e melhora no padrão de sono. Continuar com o plano terapêutico atual.",
-      time: "14:30"
-    },
-    {
-      id: 2,
-      date: "2024-01-08",
-      procedure: "Terapia Individual",
-      responsible: "Dr. Carlos Mendes",
-      observation: "Sessão focada em técnicas de respiração e mindfulness. Paciente conseguiu aplicar as técnicas durante episódio de ansiedade relatado na semana anterior.",
-      time: "14:30"
-    },
-    {
-      id: 3,
-      date: "2024-01-01",
-      procedure: "Avaliação Psicológica",
-      responsible: "Dra. Ana Paula",
-      observation: "Primeira sessão após recaída. Paciente motivado para retomar o tratamento. Estabelecidos novos objetivos terapêuticos e cronograma de acompanhamento semanal.",
-      time: "10:00"
-    }
-  ]);
+  const fetchPatientData = async () => {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('id', patientId)
+      .single();
 
-  useEffect(() => {
-    fetchMethodsAndTherapists();
-  }, []);
+    if (error) throw error;
+    setPatient(data);
+  };
+
+  const fetchConsultations = async () => {
+    const { data: consultationsData, error } = await supabase
+      .from('consultations')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('consultation_date', { ascending: false });
+
+    if (error) throw error;
+
+    // Buscar dados relacionados para cada consulta
+    const enrichedConsultations = [];
+    for (const consultation of consultationsData || []) {
+      const [methodRes, therapistRes] = await Promise.all([
+        consultation.method_id ? supabase.from('methods').select('name').eq('id', consultation.method_id).single() : null,
+        consultation.therapist_id ? supabase.from('therapists').select('name').eq('id', consultation.therapist_id).single() : null
+      ]);
+
+      enrichedConsultations.push({
+        id: consultation.id,
+        date: consultation.consultation_date,
+        time: consultation.consultation_time || "Não informado",
+        procedure: methodRes?.data?.name || "Não informado",
+        responsible: therapistRes?.data?.name || "Não informado",
+        observation: consultation.observations || "Sem observações",
+        method_id: consultation.method_id,
+        therapist_id: consultation.therapist_id
+      });
+    }
+
+    setConsultations(enrichedConsultations);
+  };
 
   const fetchMethodsAndTherapists = async () => {
     try {
@@ -135,20 +163,8 @@ const ConsultationDetails = () => {
 
       if (error) throw error;
 
-      // Buscar nome do método e responsável para exibição
-      const selectedMethod = methods.find(m => m.id === newObservation.procedure);
-      const selectedTherapist = therapists.find(t => t.id === newObservation.responsible);
-
-      const newConsultation = {
-        id: consultations.length + 1,
-        date: new Date().toISOString().split('T')[0],
-        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        procedure: selectedMethod?.name || '',
-        responsible: selectedTherapist?.name || '',
-        observation: newObservation.observation
-      };
-
-      setConsultations(prev => [newConsultation, ...prev]);
+      // Recarregar consultas para mostrar a nova consulta
+      await fetchConsultations();
       setNewObservation({ procedure: "", responsible: "", observation: "" });
       setIsAddingObservation(false);
       
@@ -217,6 +233,24 @@ const ConsultationDetails = () => {
     }
   };
 
+  if (loading || !patient) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="bg-gradient-card rounded-lg p-6 shadow-card">
+            <div className="flex items-center gap-3">
+              <Stethoscope className="h-8 w-8 text-medical-blue" />
+              <div>
+                <h1 className="text-2xl font-bold text-medical-blue">Carregando...</h1>
+                <p className="text-muted-foreground">Buscando informações do paciente</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -268,29 +302,32 @@ const ConsultationDetails = () => {
                   <p className="text-foreground">{patient.cpf}</p>
                 </div>
                 
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <p className="text-foreground">{patient.status}</p>
+                </div>
+                
                 <Separator />
                 
                 <div>
-                  <Label className="text-sm font-medium">Terapia Atual</Label>
-                  <p className="text-foreground">{patient.therapy}</p>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium">Responsável</Label>
-                  <p className="text-foreground">{patient.responsible}</p>
-                </div>
-                
-                <div>
-                  <Label className="text-sm font-medium">Início do Tratamento</Label>
+                  <Label className="text-sm font-medium">Data de Nascimento</Label>
                   <p className="text-foreground">
-                    {new Date(patient.startDate).toLocaleDateString('pt-BR')}
+                    {patient.data_nascimento 
+                      ? new Date(patient.data_nascimento).toLocaleDateString('pt-BR') 
+                      : "Não informado"
+                    }
                   </p>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium">Idade</Label>
+                  <p className="text-foreground">{patient.idade || "Não informado"} anos</p>
                 </div>
                 
                 <div>
                   <Label className="text-sm font-medium">Total de Consultas</Label>
                   <p className="text-foreground font-semibold text-medical-blue">
-                    {patient.totalConsultations}
+                    {consultations.length}
                   </p>
                 </div>
               </CardContent>

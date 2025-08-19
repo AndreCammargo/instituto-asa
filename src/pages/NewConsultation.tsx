@@ -119,6 +119,8 @@ const NewConsultation = () => {
         description: "A nova consulta foi criada com sucesso.",
       });
       
+      // Forçar refresh da página de consultas
+      localStorage.setItem('refreshConsultations', 'true');
       navigate("/consultations");
       
     } catch (error) {

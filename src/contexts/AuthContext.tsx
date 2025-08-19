@@ -49,7 +49,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    console.log('AuthContext signOut called');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Supabase signOut error:', error);
+    } else {
+      console.log('Supabase signOut successful');
+    }
   };
 
   const value = {

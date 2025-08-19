@@ -1,7 +1,9 @@
-import { useState } from "react";
 import { Home, UserPlus, Stethoscope, LogOut, UserCheck, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import institutoAsaLogo from "@/assets/instituto-asa-logo.png";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 import {
   Sidebar,
@@ -29,6 +31,9 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  const { signOut } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
@@ -36,9 +41,23 @@ export function AppSidebar() {
       ? "bg-medical-blue-light text-medical-blue font-medium border-r-2 border-medical-blue" 
       : "hover:bg-medical-blue-light/50 hover:text-medical-blue transition-colors";
 
-  const handleLogout = () => {
-    // For now, just redirect to login
-    window.location.href = "/";
+  const handleLogout = async () => {
+    try {
+      console.log('Sidebar logout clicked...');
+      await signOut();
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error('Sidebar logout error:', error);
+      toast({
+        title: "Erro no logout",
+        description: "Ocorreu um erro ao fazer logout.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

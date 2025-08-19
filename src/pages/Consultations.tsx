@@ -5,59 +5,147 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Stethoscope, Search, User, Calendar, Clock, Plus, ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Consultations = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [patients, setPatients] = useState([]);
+  const [recentConsultations, setRecentConsultations] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Mock data para pacientes
-  const patients = [
-    {
-      id: 1,
-      name: "João Silva",
-      cpf: "123.456.789-00",
-      lastConsultation: "2024-01-15",
-      totalConsultations: 8,
-      status: "Ativo",
-      therapy: "Terapia Cognitivo-Comportamental"
-    },
-    {
-      id: 2,
-      name: "Maria Santos",
-      cpf: "987.654.321-00",
-      lastConsultation: "2024-01-10",
-      totalConsultations: 12,
-      status: "Ativo",
-      therapy: "Terapia de Grupo"
-    },
-    {
-      id: 3,
-      name: "Pedro Oliveira",
-      cpf: "456.789.123-00",
-      lastConsultation: "2024-01-08",
-      totalConsultations: 5,
-      status: "Em Pausa",
-      therapy: "Terapia Individual"
-    },
-    {
-      id: 4,
-      name: "Ana Costa",
-      cpf: "321.654.987-00",
-      lastConsultation: "2024-01-12",
-      totalConsultations: 15,
-      status: "Ativo",
-      therapy: "Terapia Familiar"
+  useEffect(() => {
+    fetchRecentConsultations();
+    
+    // Verificar se precisa recarregar dados
+    const shouldRefresh = localStorage.getItem('refreshConsultations');
+    if (shouldRefresh) {
+      localStorage.removeItem('refreshConsultations');
+      fetchRecentConsultations();
     }
-  ];
+    
+    // Escutar mudanças na URL para atualizar quando voltar de nova consulta
+    const handleFocus = () => {
+      fetchRecentConsultations();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.cpf.includes(searchTerm)
-  );
+  const fetchRecentConsultations = async () => {
+    try {
+      setLoading(true);
+      const { data: consultationsData, error } = await supabase
+        .from('consultations')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-  const handleSelectPatient = (patientId: number) => {
+      if (error) throw error;
+
+      // Buscar dados relacionados separadamente
+      const enrichedConsultations = [];
+      for (const consultation of consultationsData || []) {
+        const [patientRes, therapistRes, methodRes] = await Promise.all([
+          supabase.from('patients').select('name, cpf').eq('id', consultation.patient_id).single(),
+          consultation.therapist_id ? supabase.from('therapists').select('name').eq('id', consultation.therapist_id).single() : null,
+          consultation.method_id ? supabase.from('methods').select('name').eq('id', consultation.method_id).single() : null
+        ]);
+
+        enrichedConsultations.push({
+          ...consultation,
+          patients: patientRes.data,
+          therapists: therapistRes?.data,
+          methods: methodRes?.data
+        });
+      }
+
+      setRecentConsultations(enrichedConsultations);
+    } catch (error) {
+      console.error('Error fetching consultations:', error);
+      toast({
+        title: "Erro ao carregar consultas",
+        description: "Não foi possível carregar as consultas recentes.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchPatients = async () => {
+    if (!searchTerm.trim()) {
+      setFilteredPatients([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data: patientsData, error } = await supabase
+        .from('patients')
+        .select('*')
+        .or(`name.ilike.%${searchTerm}%,cpf.ilike.%${searchTerm}%`);
+
+      if (error) throw error;
+
+      // Buscar consultas para cada paciente
+      const processedPatients = [];
+      for (const patient of patientsData || []) {
+        const { data: consultations } = await supabase
+          .from('consultations')
+          .select('consultation_date, method_id')
+          .eq('patient_id', patient.id)
+          .order('consultation_date', { ascending: false });
+
+        const totalConsultations = consultations?.length || 0;
+        const lastConsultation = consultations?.[0]?.consultation_date || null;
+        
+        // Buscar nome do método da última consulta
+        let therapy = "Não informado";
+        if (consultations?.[0]?.method_id) {
+          const { data: methodData } = await supabase
+            .from('methods')
+            .select('name')
+            .eq('id', consultations[0].method_id)
+            .single();
+          therapy = methodData?.name || "Não informado";
+        }
+        
+        processedPatients.push({
+          ...patient,
+          totalConsultations,
+          lastConsultation,
+          therapy
+        });
+      }
+
+      setFilteredPatients(processedPatients);
+    } catch (error) {
+      console.error('Error searching patients:', error);
+      toast({
+        title: "Erro na busca",
+        description: "Não foi possível realizar a busca.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    searchPatients();
+  };
+
+  const handleSelectPatient = (patientId: string) => {
     navigate(`/consultation-details/${patientId}`);
   };
 
@@ -123,9 +211,13 @@ const Consultations = () => {
                 />
               </div>
               <div className="flex items-end">
-                <Button className="bg-gradient-primary">
+                <Button 
+                  className="bg-gradient-primary" 
+                  onClick={handleSearch}
+                  disabled={loading}
+                >
                   <Search className="h-4 w-4 mr-2" />
-                  Buscar
+                  {loading ? "Buscando..." : "Buscar"}
                 </Button>
               </div>
             </div>
@@ -133,7 +225,7 @@ const Consultations = () => {
         </Card>
 
         {/* Results Section */}
-        {searchTerm && (
+        {filteredPatients.length > 0 && (
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle>Resultados da Busca</CardTitle>
@@ -171,7 +263,10 @@ const Consultations = () => {
                             <Calendar className="h-4 w-4 text-medical-blue" />
                             <span className="text-muted-foreground">Última consulta:</span>
                             <span className="font-medium">
-                              {new Date(patient.lastConsultation).toLocaleDateString('pt-BR')}
+                              {patient.lastConsultation ? 
+                                new Date(patient.lastConsultation).toLocaleDateString('pt-BR') 
+                                : "Nenhuma consulta"
+                              }
                             </span>
                           </div>
                           
@@ -225,49 +320,47 @@ const Consultations = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                {
-                  patient: "João Silva",
-                  date: "2024-01-15",
-                  time: "14:30",
-                  therapist: "Dr. Carlos Mendes",
-                  type: "Terapia Individual"
-                },
-                {
-                  patient: "Maria Santos",
-                  date: "2024-01-14",
-                  time: "10:00",
-                  therapist: "Dra. Ana Paula",
-                  type: "Terapia de Grupo"
-                },
-                {
-                  patient: "Ana Costa",
-                  date: "2024-01-12",
-                  time: "16:00",
-                  therapist: "Dr. Roberto Silva",
-                  type: "Terapia Familiar"
-                }
-              ].map((consultation, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-medical-blue-light rounded-full">
-                      <Stethoscope className="h-4 w-4 text-medical-blue" />
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-muted-foreground">Carregando consultas...</p>
+                </div>
+              ) : recentConsultations.length > 0 ? (
+                recentConsultations.map((consultation) => (
+                  <div key={consultation.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-medical-blue-light rounded-full">
+                        <Stethoscope className="h-4 w-4 text-medical-blue" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{consultation.patients?.name || "Paciente não informado"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {consultation.methods?.name || "Método não informado"} - {consultation.therapists?.name || "Terapeuta não informado"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Status: {consultation.status || "Agendada"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{consultation.patient}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {consultation.type} - {consultation.therapist}
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {new Date(consultation.consultation_date).toLocaleDateString('pt-BR')}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {consultation.consultation_time || "Horário não informado"}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      {new Date(consultation.date).toLocaleDateString('pt-BR')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{consultation.time}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium">Nenhuma consulta encontrada</h3>
+                  <p className="text-muted-foreground">
+                    As consultas criadas aparecerão aqui automaticamente.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
