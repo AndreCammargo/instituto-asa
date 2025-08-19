@@ -3,11 +3,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileText, ArrowLeft, User, Search, Download, Calendar } from "lucide-react";
-import { useState } from "react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FileText, ArrowLeft, User, Search, Download, Calendar, Check, ChevronsUpDown } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+interface PatientSearchResult {
+  id: string;
+  name: string;
+  cpf: string;
+  status: string;
+}
 
 interface Patient {
   id: string;
@@ -57,14 +67,12 @@ const Reports = () => {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState<"history" | "profile" | null>(null);
+  const [patients, setPatients] = useState<PatientSearchResult[]>([]);
+  const [open, setOpen] = useState(false);
 
-  const searchPatient = async () => {
-    if (!searchTerm.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Digite o nome do acolhido para buscar.",
-        variant: "destructive",
-      });
+  const searchPatients = async (searchValue: string) => {
+    if (!searchValue.trim()) {
+      setPatients([]);
       return;
     }
 
@@ -72,55 +80,61 @@ const Reports = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('patients')
-        .select('*')
-        .ilike('name', `%${searchTerm}%`)
+        .select('id, name, cpf, status')
+        .ilike('name', `%${searchValue}%`)
         .limit(10);
 
       if (error) throw error;
+      setPatients(data || []);
+    } catch (error) {
+      console.error('Error searching patients:', error);
+      setPatients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      if (!data || data.length === 0) {
-        toast({
-          title: "Nenhum paciente encontrado",
-          description: "Verifique se o nome está correto.",
-          variant: "destructive",
-        });
-        return;
-      }
+  const handlePatientSelect = async (patientSearchResult: PatientSearchResult) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', patientSearchResult.id)
+        .single();
 
-      if (data.length === 1) {
-        setSelectedPatient(data[0]);
-        if (reportType === "history") {
-          await fetchConsultations(data[0].id);
-        }
-      } else {
-        // Se houver múltiplos resultados, pegar o primeiro que corresponder exatamente
-        const exactMatch = data.find(p => 
-          p.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        if (exactMatch) {
-          setSelectedPatient(exactMatch);
-          if (reportType === "history") {
-            await fetchConsultations(exactMatch.id);
-          }
-        } else {
-          toast({
-            title: "Múltiplos pacientes encontrados",
-            description: "Digite um nome mais específico.",
-            variant: "destructive",
-          });
-        }
+      if (error) throw error;
+
+      setSelectedPatient(data);
+      setOpen(false);
+      setSearchTerm("");
+      setPatients([]);
+      
+      if (reportType === "history") {
+        await fetchConsultations(data.id);
       }
     } catch (error) {
-      console.error('Error searching patient:', error);
+      console.error('Error fetching patient details:', error);
       toast({
-        title: "Erro na busca",
-        description: "Não foi possível realizar a busca.",
+        title: "Erro ao carregar paciente",
+        description: "Não foi possível carregar os dados do paciente.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (searchTerm) {
+      const timeoutId = setTimeout(() => {
+        searchPatients(searchTerm);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setPatients([]);
+    }
+  }, [searchTerm]);
 
   const fetchConsultations = async (patientId: string) => {
     try {
@@ -248,29 +262,57 @@ const Reports = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="search">Nome do Acolhido</Label>
-                  <Input
-                    id="search"
-                    type="text"
-                    placeholder="Digite o nome do acolhido..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && searchPatient()}
-                    className="focus:ring-medical-blue focus:border-medical-blue"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <Button 
-                    className="bg-gradient-primary" 
-                    onClick={searchPatient}
-                    disabled={loading}
-                  >
-                    <Search className="h-4 w-4 mr-2" />
-                    {loading ? "Buscando..." : "Buscar"}
-                  </Button>
-                </div>
+              <div className="space-y-4">
+                <Label htmlFor="patient-search">Nome do Acolhido</Label>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-full justify-between focus:ring-medical-blue focus:border-medical-blue"
+                      disabled={loading}
+                    >
+                      {selectedPatient ? selectedPatient.name : "Selecione um acolhido..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Digite o nome do acolhido..."
+                        value={searchTerm}
+                        onValueChange={setSearchTerm}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {loading ? "Buscando..." : "Nenhum acolhido encontrado."}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {patients.map((patient) => (
+                            <CommandItem
+                              key={patient.id}
+                              value={patient.name}
+                              onSelect={() => handlePatientSelect(patient)}
+                              className="cursor-pointer"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedPatient?.id === patient.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{patient.name}</span>
+                                <span className="text-sm text-muted-foreground">CPF: {patient.cpf}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardContent>
           </Card>
