@@ -163,7 +163,7 @@ const Consultations = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <Button variant="outline" className="gap-2" onClick={() => navigate(-1)}>
+        <Button variant="outline" className="gap-2" onClick={() => navigate('/dashboard')}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         <div className="bg-gradient-card rounded-lg p-6 shadow-card">
