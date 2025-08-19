@@ -21,9 +21,9 @@ import {
 const items = [
   { title: "Tela Principal", url: "/dashboard", icon: Home },
   { title: "Acolhidos", url: "/acolhidos", icon: UserPlus },
+  { title: "Consultas", url: "/consultations", icon: Stethoscope },
   { title: "Responsáveis", url: "/therapists", icon: UserCheck },
   { title: "Métodos", url: "/methods", icon: Settings },
-  { title: "Consultas", url: "/consultations", icon: Stethoscope },
 ];
 
 export function AppSidebar() {
