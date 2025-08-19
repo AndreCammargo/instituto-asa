@@ -228,7 +228,10 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          <Card className="shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
+          <Card 
+            className="shadow-card hover:shadow-elevated transition-shadow cursor-pointer"
+            onClick={() => navigate('/reports')}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-success" />

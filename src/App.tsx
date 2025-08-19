@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Reports from "@/pages/Reports";
 import Account from "./pages/Account";
 import Acolhidos from "./pages/Acolhidos";
 import RegisterPatient from "./pages/RegisterPatient";
@@ -54,6 +55,7 @@ const App = () => {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
               <Route path="/acolhidos" element={<ProtectedRoute><Acolhidos /></ProtectedRoute>} />
               <Route path="/register-patient" element={<ProtectedRoute><RegisterPatient /></ProtectedRoute>} />
